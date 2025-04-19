@@ -1,0 +1,6 @@
+build.zig
+./build.zig
+./build.zig/
+zig-out
+./zig-out
+./zig-out/
