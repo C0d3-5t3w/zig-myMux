@@ -239,7 +239,7 @@ pub const routeRegexpGroup = struct {
         return new_group;
     }
 
-    pub fn setMatch(self: *routeRegexpGroup, req: *const http.Request, match_result: *router_mod.Router.RouteMatch, r: *Route) !void {
+    pub fn setMatch(self: *routeRegexpGroup, req: *const http.Request, match_result: *router_mod.Router.RouteMatch, _: *Route) !void {
         // Extract variables from host regexp
         if (self.host) |host_regexp| {
             const host = getHost(req);
@@ -251,19 +251,12 @@ pub const routeRegexpGroup = struct {
                 }
             }
 
-            try extractVars(match_result.vars, host_regexp.varsN, host_to_match, host_regexp);
+            try extractVars(match_result.vars, host_regexp.varsN, host_to_match);
         }
 
         // Extract variables from path regexp
         if (self.path) |path_regexp| {
             var path = req.target;
-            if (r.use_encoded_path) {
-                // Would use URL-encoded path if available
-            }
-
-            try extractVars(match_result.vars, path_regexp.varsN, path, path_regexp);
-
-            // Handle strict slash redirects
             if (path_regexp.options.strict_slash) {
                 const p1 = std.mem.endsWith(u8, path, "/");
                 const p2 = std.mem.endsWith(u8, path_regexp.template, "/");
@@ -271,12 +264,14 @@ pub const routeRegexpGroup = struct {
                     // Would set up a redirect here
                 }
             }
+
+            try extractVars(match_result.vars, path_regexp.varsN, path);
         }
 
         // Extract variables from query regexps
         for (self.queries.items) |query_regexp| {
             if (req.query_string) |query| {
-                try extractVars(match_result.vars, query_regexp.varsN, query, query_regexp);
+                try extractVars(match_result.vars, query_regexp.varsN, query);
             }
         }
     }
@@ -298,7 +293,7 @@ pub fn newRouteRegexp(allocator: Allocator, tpl: []const u8, typ: regexpType, op
 
     // Parse braces to extract variable names and patterns
     var i: usize = 0;
-    var template_parts = std.ArrayList(u8).init(allocator);
+    const template_parts = std.ArrayList(u8).init(allocator);
     defer template_parts.deinit();
 
     // Simplified brace parsing
@@ -370,7 +365,7 @@ fn getHost(req: *const http.Request) []const u8 {
 }
 
 /// Extract variables from a string based on regexp
-fn extractVars(vars_map: std.StringHashMap([]const u8), var_names: []const []const u8, input: []const u8, _: *const routeRegexp) !void {
+fn extractVars(vars_map: std.StringHashMap([]const u8), var_names: []const []const u8) !void {
     // Simplified variable extraction
     // In a real implementation, we'd use the regexp to extract values
 

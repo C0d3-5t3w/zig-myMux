@@ -29,7 +29,7 @@ pub const Route = struct {
 
     /// Initialize a new route
     pub fn init(allocator: Allocator, named_routes: *std.StringHashMap(*Route), conf: router_mod.RouteConf) !*Route {
-        var self = try allocator.create(Route);
+        const self = try allocator.create(Route);
         self.* = Route{
             .allocator = allocator,
             .named_routes = named_routes,
@@ -257,16 +257,16 @@ pub const Route = struct {
     /// Set the methods for this route
     pub fn methods(self: *Route, method_list: []const []const u8) !*Route {
         if (self.err == null) {
-            var methods = std.ArrayList([]u8).init(self.allocator);
-            defer methods.deinit();
+            var method_array = std.ArrayList([]u8).init(self.allocator);
+            defer method_array.deinit();
 
             for (method_list) |method| {
                 const upper = try std.ascii.allocUpperString(self.allocator, method);
-                try methods.append(upper);
+                try method_array.append(upper);
             }
 
             // Create a method matcher and add it
-            const matcher_fn = createMethodMatcher(self.allocator, methods.items);
+            const matcher_fn = createMethodMatcher(self.allocator, method_array.items);
             try self.addMatcher(matcher_fn);
         }
         return self;
@@ -300,20 +300,20 @@ pub const Route = struct {
     /// Set schemes for this route
     pub fn schemes(self: *Route, scheme_list: []const []const u8) !*Route {
         if (self.err == null) {
-            var schemes = std.ArrayList([]u8).init(self.allocator);
-            defer schemes.deinit();
+            var scheme_array = std.ArrayList([]u8).init(self.allocator);
+            defer scheme_array.deinit();
 
             for (scheme_list) |scheme| {
                 const lower = try std.ascii.allocLowerString(self.allocator, scheme);
-                try schemes.append(lower);
+                try scheme_array.append(lower);
             }
 
-            if (schemes.items.len > 0) {
-                self.build_scheme = try self.allocator.dupe(u8, schemes.items[0]);
+            if (scheme_array.items.len > 0) {
+                self.build_scheme = try self.allocator.dupe(u8, scheme_array.items[0]);
             }
 
             // Create a scheme matcher and add it
-            const matcher_fn = createSchemeMatcher(self.allocator, schemes.items);
+            const matcher_fn = createSchemeMatcher(self.allocator, scheme_array.items);
             try self.addMatcher(matcher_fn);
         }
         return self;
@@ -338,6 +338,7 @@ pub const Route = struct {
 
     /// Create a subrouter
     pub fn subrouter(self: *Route) !*router_mod.Router {
+        _ = self; // Mark self as used
         // Implementation depends on router.zig
         return error.NotImplemented;
     }
@@ -348,7 +349,7 @@ pub const Route = struct {
             return self.err.?;
         }
 
-        var values = try self.prepareVars(pairs);
+        const values = try self.prepareVars(pairs);
         var result = uri.Uri{
             .scheme = "",
             .username = "",
@@ -394,17 +395,17 @@ pub const Route = struct {
 
     /// Prepare variables for URL generation
     fn prepareVars(self: *Route, pairs: []const []const u8) !std.StringHashMap([]const u8) {
-        var map = try router_mod.mapFromPairsToString(self.allocator, pairs);
+        const values = try router_mod.mapFromPairsToString(self.allocator, pairs);
         errdefer {
-            var it = map.iterator();
+            var it = values.iterator();
             while (it.next()) |kv| {
                 self.allocator.free(kv.key_ptr.*);
                 self.allocator.free(kv.value_ptr.*);
             }
-            map.deinit();
+            values.deinit();
         }
 
-        return self.buildVars(map);
+        return self.buildVars(values);
     }
 
     /// Apply buildVarsFunc to variables

@@ -86,7 +86,7 @@ pub const Router = struct {
 
     /// Initialize a new router
     pub fn init(allocator: Allocator) !*Router {
-        var self = try allocator.create(Router);
+        const self = try allocator.create(Router);
         self.* = Router{
             .allocator = allocator,
             .routes = std.ArrayList(*Route).init(allocator),
@@ -286,17 +286,17 @@ pub const Router = struct {
         }
 
         // Try to match a route
-        var match = RouteMatch.init(self.allocator);
-        defer match.deinit();
+        var route_match = RouteMatch.init(self.allocator);
+        defer route_match.deinit();
         var handler: ?*const fn (response: *http.Server.Response, request: *const http.Request) anyerror!void = null;
 
-        if (try self.match(&req, &match)) {
-            handler = match.handler;
+        if (try self.match(&req, &route_match)) {
+            handler = route_match.handler;
             // In Go, we would set the variables and route in the request context
             // In Zig, we can't modify the request directly, so we'd need a different approach
         }
 
-        if (handler == null and match.err == RouterError.MethodMismatch) {
+        if (handler == null and route_match.err == RouterError.MethodMismatch) {
             response.status = .method_not_allowed;
             try response.do();
             return;
