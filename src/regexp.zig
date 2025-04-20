@@ -185,7 +185,7 @@ pub const routeRegexp = struct {
     /// Create a matcher function for this regexp
     pub fn matcherFunc(self: *routeRegexp) *const fn (req: *const http.Request, match_result: *router_mod.Router.RouteMatch) bool {
         const matcher = struct {
-            pub fn matchFunc(req: *const http.Request, match_result: *router_mod.Router.RouteMatch) bool {
+            pub fn matchFunc(req: *const http.Request, _: *router_mod.Router.RouteMatch) bool {
                 return self.match(req);
             }
         };
@@ -256,7 +256,7 @@ pub const routeRegexpGroup = struct {
 
         // Extract variables from path regexp
         if (self.path) |path_regexp| {
-            var path = req.target;
+            const path = req.target;
             if (path_regexp.options.strict_slash) {
                 const p1 = std.mem.endsWith(u8, path, "/");
                 const p2 = std.mem.endsWith(u8, path_regexp.template, "/");
@@ -365,7 +365,7 @@ fn getHost(req: *const http.Request) []const u8 {
 }
 
 /// Extract variables from a string based on regexp
-fn extractVars(vars_map: std.StringHashMap([]const u8), var_names: []const []const u8) !void {
+fn extractVars(vars_map: std.StringHashMap([]const u8), var_names: []const []const u8, input: []const u8) !void {
     // Simplified variable extraction
     // In a real implementation, we'd use the regexp to extract values
 
